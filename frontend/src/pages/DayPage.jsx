@@ -28,40 +28,30 @@ import {
 } from "@mui/material";
 import { Calendar } from "@fullcalendar/core/index.js";
 
-export default function DayPage({loadSgos, sgos, sgoMapper, selectedEvent, setSelectedEvent, loadBros, bros}){
+// import { LocalizationProvider, TimePicker } from "@mui/x-date-pickers";
+// import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+// import dayjs from "dayjs";
+
+export default function DayPage({loadSgos, sgos, sgoMapper, selectedEvent, setSelectedEvent, loadBros, bros, joinSgo, refresh, setRefresh, form, setForm, createSgo}){
 
     const { date } = useParams();
+
+    const combineDateTime = (date, time) => {
+      return `${date}T${time}:00`
+    }
     
     useEffect(() => {
-        if (!sgos || sgos.length === 0){
-            loadSgos();
-        }
-    }, [sgos, loadSgos]);
+      loadSgos();
+    }, [refresh]);
 
     useEffect(() => {
         if (!bros || bros.length === 0){
             loadBros();
         }
-    }, [bros, loadBros]);
+    }, []);
 
     //Creating New Sgo
     const [open, setOpen] = useState(false)
-
-    const localNow = () => {
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    return now.toISOString().slice(0, 16);
-  }
-
-    const [form, setForm] = useState({
-        description: "",
-        size: "",
-        start: localNow,
-        end: localNow,
-        location: "",
-        bro_ids: [],
-        pnm_ids: []
-    })
 
     console.log(bros)
 
@@ -88,8 +78,8 @@ export default function DayPage({loadSgos, sgos, sgoMapper, selectedEvent, setSe
         <Box>
           <Typography variant="caption" color="text.secondary">Status</Typography>
           <Chip
-            label={selectedEvent.filled ? "Full" : "Open"}
-            color={selectedEvent.filled ? "warning" : "success"}
+            label={selectedEvent.size == selectedEvent.pnms.length ? "Full" : "Open"}
+            color={selectedEvent.size == selectedEvent.pnms.length ? "warning" : "success"}
             size="small"
           />
         </Box>
@@ -121,6 +111,12 @@ export default function DayPage({loadSgos, sgos, sgoMapper, selectedEvent, setSe
           <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
             {selectedEvent.pnms?.map((p) => <Chip key={p} label={p} size="small" />)}
           </Box>
+        </Box>
+
+        <Box>
+          <Button onClick={() => {joinSgo(selectedEvent.id)}} variant="contained" disabled={selectedEvent.pnms?.length == selectedEvent.size}>
+            Sign Up
+          </Button>
         </Box>
       </>
     )}
@@ -179,7 +175,7 @@ export default function DayPage({loadSgos, sgos, sgoMapper, selectedEvent, setSe
 
                 <TextField
                 label="Start"
-                type="datetime-local"
+                type="time"
                 value={form.start}
                 onChange={(e) => setForm({ ...form, start: e.target.value })}
                 fullWidth
@@ -188,7 +184,7 @@ export default function DayPage({loadSgos, sgos, sgoMapper, selectedEvent, setSe
 
                 <TextField
                 label="End"
-                type="datetime-local"
+                type="time"
                 value={form.end}
                 onChange={(e) => setForm({ ...form, end: e.target.value })}
                 fullWidth
@@ -198,7 +194,10 @@ export default function DayPage({loadSgos, sgos, sgoMapper, selectedEvent, setSe
             </DialogContent>
             <DialogActions>
                 <Button onClick={() => setOpen(false)}>Cancel</Button>
-                <Button>Submit</Button>
+                <Button onClick={() =>{
+                  createSgo(date)
+                  setOpen(false)
+                }}>Submit</Button>
             </DialogActions>
         </Dialog>
     </Container>

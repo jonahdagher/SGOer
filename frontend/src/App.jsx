@@ -22,12 +22,29 @@ export default function App() {
   const [msg, setMsg] = useState("");
   const [sgos, setSgos] = useState([]);
   const [bros, setBros] = useState([])
+  const [refresh, setRefresh] = useState(0);
 
   // 4) router navigation helper
   const navigate = useNavigate();
 
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedEvent, setSelectedEvent] = useState("");
+
+  const localNow = () => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    return now.toISOString().slice(11, 16);
+  }
+
+  const [form, setForm] = useState({
+          description: "",
+          size: "",
+          start: localNow(),
+          end: localNow(),
+          location: "",
+          bro_ids: [],
+          pnm_ids: []
+      })
 
 
   async function loadSgos() {
@@ -45,6 +62,36 @@ export default function App() {
     const data = await res.json();
     setSgos(data);
     setMsg("SGOs successfully loaded");
+  }
+
+  async function joinSgo(sgoId){
+    const res = await fetch(`${API}/api/sgos/${sgoId}/join/`,{
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${tokens.access}`,
+      }
+    })
+    if (!res.ok) throw new Error("Failed to join SGO");
+    setRefresh(r=> r+1);
+    setSelectedEvent(null)
+    return res.json();
+  };
+
+  async function createSgo(date){
+    const res = await fetch(`${API}/api/sgos/create/`, {
+      method: "POST", 
+      headers: {
+        Authorization: `Bearer ${tokens.access}`,
+        "Content-Type" : "application/json"
+      },
+      body: JSON.stringify({
+      ...form,
+      start: `${date}T${form.start}:00`,
+      end: `${date}T${form.end}:00`,
+    }),
+    });
+    setRefresh(r=> r+1);
+    return res.json();
   }
 
   async function loadBros(){
@@ -111,15 +158,15 @@ function sgoMapper(obj){
       title: sgo.description ? sgo.description : `SGO #${sgo.id}`,
       start: sgo.start, // must be ISO string or YYYY-MM-DD
       end: sgo.end || undefined,
-      backgroundColor: sgo.size == sgo.bros.length ? "#F2A900" : "#22884C",
+      backgroundColor: sgo.size == sgo.pnms.length ? "#F2A900" : "#22884C",
       borderColor: selectedEvent === String(sgo.id) ? "#1e40af" : "",
       borderWidth: "10px",
       extendedProps: {
+        id: String (sgo.id), //temp fix
         location: sgo.location,
         size: sgo.size,
         bros: sgo.bros || [],
         pnms: sgo.pnms || [],
-        filled: sgo.size == sgo.bros.length
       },
     }));
   }
@@ -164,7 +211,7 @@ function sgoMapper(obj){
       path="/day/:date"
       element={
           tokens.access ? (
-            <DayPage loadSgos={loadSgos} sgos={sgos} sgoMapper={sgoMapper} selectedEvent={selectedEvent} setSelectedEvent={setSelectedEvent} loadBros={loadBros} bros={bros}/>
+            <DayPage loadSgos={loadSgos} sgos={sgos} sgoMapper={sgoMapper} selectedEvent={selectedEvent} setSelectedEvent={setSelectedEvent} loadBros={loadBros} bros={bros} joinSgo={joinSgo} refresh={refresh} setRefresh={setRefresh} form={form} setForm={setForm} createSgo={createSgo}/>
           ) : (
             <Navigate to="/login" />
           )

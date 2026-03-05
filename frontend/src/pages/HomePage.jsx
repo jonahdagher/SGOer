@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -14,24 +14,12 @@ import {
   Box,
 } from "@mui/material";
 
-export default function HomePage({ loadSgos, logout, sgos, msg }) {
+export default function HomePage({ loadSgos, logout, sgos, msg, sgoMapper }) {
   // Convert your API data into FullCalendar event objects
-  const events = useMemo(() => {
-    if (!Array.isArray(sgos)) return [];
 
-    return sgos.map((sgo) => ({
-      id: String(sgo.id),
-      title: sgo.description ? sgo.description : `SGO #${sgo.id}`,
-      start: sgo.start, // must be ISO string or YYYY-MM-DD
-      end: sgo.end || undefined,
-      extendedProps: {
-        location: sgo.location,
-        size: sgo.size,
-        bros: sgo.bros || [],
-        pnms: sgo.pnms || [],
-      },
-    }));
-  }, [sgos]);
+  useEffect(()=>{loadSgos();}, [])
+
+  const events = useMemo(() => sgoMapper(sgos), [sgos]);
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
@@ -41,14 +29,6 @@ export default function HomePage({ loadSgos, logout, sgos, msg }) {
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             SGOs Calendar
           </Typography>
-
-          <Button
-            variant="contained"
-            onClick={loadSgos}
-            sx={{ textTransform: "none" }}
-          >
-            Load SGOs
-          </Button>
 
           <Button
             variant="text"
@@ -91,18 +71,9 @@ export default function HomePage({ loadSgos, logout, sgos, msg }) {
               right: "dayGridMonth,timeGridWeek",
             }}
             events={events}
-            eventClick={(info) => {
-              const p = info.event.extendedProps;
-              alert(
-                [
-                  `SGO #${info.event.id}`,
-                  `Location: ${p.location ?? ""}`,
-                  `Size: ${p.size ?? ""}`,
-                  `Bros: ${(p.bros ?? []).join(", ")}`,
-                  `PNMs: ${(p.pnms ?? []).join(", ")}`,
-                ].join("\n")
-              );
-            }}
+            dateClick={(info) => {
+            window.location.href = `/day/${info.dateStr}`;
+          }}
           />
         </Paper>
       </Container>
